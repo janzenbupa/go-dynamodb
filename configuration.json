@@ -1,0 +1,6 @@
+{
+    "DynamoDb":{
+        "AccessKey":"Access Key",
+        "SecretKey":"Secret Key"
+    }
+}
