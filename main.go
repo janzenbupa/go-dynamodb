@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,18 +45,24 @@ func buildConnection() dynamodb.DynamoDB {
 	return *svc
 }
 
-func Write(bankAccountId string, merchant string) {
+func Write(brand string, model string, year int, price float32) {
 
 	svc := buildConnection()
 
 	input := &dynamodb.PutItemInput{
-		TableName: aws.String("BankAccount"),
+		TableName: aws.String("Bike"),
 		Item: map[string]*dynamodb.AttributeValue{
-			"BankAccountId": {
-				S: aws.String(bankAccountId),
+			"Brand": {
+				S: aws.String(brand),
 			},
-			"Merchant": {
-				S: aws.String(merchant),
+			"Model": {
+				S: aws.String(model),
+			},
+			"Year": {
+				N: aws.String(strconv.Itoa(year)),
+			},
+			"Price": {
+				N: aws.String(strconv.FormatFloat(float64(price), 'f', -1, 32)),
 			},
 		},
 	}
@@ -64,35 +72,32 @@ func Write(bankAccountId string, merchant string) {
 	}
 }
 
-func ReadByBankAccount(bankAccountId string) (map[string]*dynamodb.AttributeValue, error) {
+func ReadByBike(model string) ([]map[string]*dynamodb.AttributeValue, error) {
 	svc := buildConnection()
 
-	input := &dynamodb.GetItemInput{
-		TableName: aws.String("BankAccount"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"BankAccountId": {
-				S: aws.String(bankAccountId),
+	input := &dynamodb.QueryInput{
+		TableName:              aws.String("Bike"),
+		KeyConditionExpression: aws.String("Model = :model"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":model": {
+				S: aws.String(model),
 			},
 		},
 	}
 
-	result, err := svc.GetItem(input)
+	result, err := svc.Query(input)
 	if err != nil {
 		return nil, err
 	}
 
-	if result.Item == nil {
-		return nil, nil
-	}
-
-	return result.Item, nil
+	return result.Items, nil
 }
 
 func Read(limit int64) ([]map[string]*dynamodb.AttributeValue, error) {
 	svc := buildConnection()
 
 	input := &dynamodb.ScanInput{
-		TableName: aws.String("BankAccount"),
+		TableName: aws.String("Bike"),
 		Limit:     aws.Int64(limit),
 	}
 
